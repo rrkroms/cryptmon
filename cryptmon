@@ -1,0 +1,122 @@
+#/bin/bash
+filename=$(basename -- "$2")
+extension="${filename##*.}"
+filename="${filename%.*}"
+CFG_DIR="${HOME}/.rom_crypt"
+AGE_CFG_FILE="$CFG_DIR/.age_keygen.rom"
+AGE_PUB=$(grep -oP "public key: \K(.*)" $AGE_CFG_FILE 2>/dev/null)
+GPG_USR=$(grep -oP 'gpg_user: \K(.*)' $CFG_DIR/.config 2>/dev/null)
+lol="user not configer, use: --help argument"
+source rom_ui
+source config
+
+enc() {
+
+    sopsE() {
+        tell i "SOPS ENCRYPTing..."
+        sops -e --verbose --age ${AGE_PUB} --in-place "$filename.$extension" &&
+        tell s "SOPS ENCRYPTion Done..." ||
+        tell f "sops failed encrypt to file"
+    }
+
+    opensslE() {
+        tell i "OPENSSL ENCRYPTing..."
+        openssl enc -aes-256-cbc -in "$filename.$extension" -out "$filename.$extension.enc.openssl" &&
+        mv "$filename.$extension.enc.openssl" "$filename.$extension" ||
+        rm "$filename.$extension.enc.openssl" &&
+        tell s "OpenSSL ENCRYPTtion Done..." ||
+        tell f "openssl failed, encrypt to file"
+    }
+
+    gpgE() {
+        tell i "GPG ENCRYPTing..."
+        gpg -e -u ${GPG_USR:?gpg: sender not set} -r ${GPG_USR:?gpg: reciver not set} "$filename.$extension" &&
+        mv "$filename.$extension.gpg" "$filename.$extension" &&
+        tell s "GPG ENCRYPTtion Done..." ||
+        tell f "GPG failed encrypt to file"
+    }
+    sopsE && opensslE && gpgE
+}
+
+dec() {
+    gpgD() {
+        tell i "GPG DECRYPTing..."
+        gpg -d "$filename.$extension" >"$filename.$extension.dec.gpg" &&
+        mv "$filename.$extension.dec.gpg" "$filename.$extension" &&
+        tell s "GPG DECRYPTing Done..." ||
+        tell f "GPG failed decrypt to file " &&
+        rm -rf "$filename.$extension.dec.gpg"
+    }
+    opensslD() {
+        tell i "openSSL DECRYPTing..."
+        openssl enc -d -aes-256-cbc -in "$filename.$extension" -out "$filename.$extension.dec.openssl" &&
+        mv "$filename.$extension.dec.openssl" "$filename.$extension" &&
+        tell s "OpenSSL DECRYPTing Done..." &&
+        return 0 ||
+        rm "$filename.$extension.dec.openssl" &&
+        tell f "OpenSSL failed, dencrypt to file"
+    }
+    sopsD() {
+        
+        tell i "SOPS DECRYPTing..."
+        sops -d --verbose --age $AGE_PUB --in-place "$filename.$extension" &&
+        tell s "SOPS DECRYPTing Done..." ||
+        tell f "SOPS failed encrypt to file"
+    }
+    gpgD && opensslD && sopsD
+}
+
+case $1 in
+
+-e | --encrypt) [ -e $2 ] && [ -n ${GPG_USR:?$gpg user not set} ] && enc || tell f "[$2] file dosn't exiest!";;
+-d | --decrypt) [ -e $2 ] && [ -n ${GPG_USR:?$lol} ] && dec || tell f "[$2] file dosn't exiest!" ;;
+-c   | --cfg ) gpg_cfg $3 && age_cfg auto $2  ;;
+-ca  | --cfg-age ) age_cfg auto $2;;
+-cg  | --cfg-gpg ) gpg_cfg $2 $3 ;;
+-cf  | --verify) age_cfg verify ;;
+-cae | -cea | --export-age) age_cfg exmport $2 ;;
+-cai | -cia | --import-age) age_cfg import -ds $2 ;; #('-ds : don't skip)
+-cr  | --rm-all ) reset_cfg gpg_rm ; age_rm ;;
+-car | -cra | --rm-age ) reset_cfg age_rm ;;
+-cgr | -crg | --rm-gpg ) reset_cfg gpg_rm ;;
+-cv  | --cfg-view) view_cfg $2 ;;
+-cgv | -cvg | --view-gpg) view_cfg --gpg ;;
+-cav | -cva| --view-age) view_cfg --age ;;
+-t) gpg_cfg detector;;
+
+
+
+
+--help)
+    echo "
+    Syntax: $0 [options] [files]
+    ${0%.*} is 3 Layer encrytion script that base on GPG SOPS AGE openssl.
+    encrypt/decrypt your secrect by easy command line 
+    OPTIONS:
+	    -e,  --encrypt     encrypt file.
+	    -d,  --decrypt     decrypt file.
+            -c,  --cfg         configer
+
+    [ -C ] SUB-OPTIONS:
+      USAGE : $0 [-ca] [FILE] [-y]
+              $0 [-cg] [USER NAME]
+              $0 [-c] [FILE] [USER NAME]
+              $0 [-cae]or[-cea] [DIR]
+              $0 [-cai]or[-cia] [FILE]
+              $0 [-cae]or[-cea] [DIR]
+         a,  --cfg-age            AGE configer
+         g,  --cfg-gpg            GPG configer
+         e,  --export-[CODE]     export config
+         i,  --import-[CODE]     import config 
+         v,  --cfg-vieW          show config
+         f,  --verify            verfiy keygen that, vaild or invaild
+         r,  --reset             reset configer
+      HINTs : 
+      [CODE] : usage package code , in that place
+                EXAMPLE: $0 --import-age (import AGE config) 
+                         $0 --import-gpg (import GPG config)
+    "
+    ;;
+*)  tell i "worng argument \n ${yellow} use ${0} --help" ;;
+
+esac

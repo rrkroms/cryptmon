@@ -1,0 +1,142 @@
+#!/bin/bash
+
+source rom_ui
+# [ $1 == '-c'* ]&&
+[ ! -d $CFG_DIR ] &&
+        mkdir $CFG_DIR &&
+        tell i "creating configer dirctory ${CFG_DIR}"
+
+	view_cfg(){
+		--age(){
+			[ ! -e $AGE_CFG_FILE ] && tell f "AGE : KEYGEN not exiest!" || tell d "AGE : ${yellow}DIR:- ${blue} $AGE_CFG_FILE
+	   ${yellow}KEY:-${red} $AGE_PUB"
+			}
+		--gpg(){
+			[ -z $GPG_USR ] && tell f "GPG : user not exiest!" || tell d "GPG : USER :- $GPG_USR"
+		}
+		[ -z $1 ]&& --age 
+		[ -z $1 ]&& --gpg
+		$@
+	}
+age_cfg() {
+
+	verify() {
+		check(){
+			# e : check that input file exiest
+			# m : match input file with contained filed(in this case, we are use keygen file[$AGE_CFG_FILE])
+			# f : ask to user for overwrite on exiest contained file
+			# USAGE: -emf or --m or -f or -e or -ef 
+			[[ $1 == "-"*"e"* ]] &&
+			[[ -n $2 && ! -e $2 ]] && tell f "AGE : input file [$2] dosn't exiest!" && exit 
+			
+			[[ $1 == "-"*"m"* ]] &&
+			[[  -e $2 && $(cat "$2") == $(cat "$AGE_CFG_FILE") ]] 2> /dev/null && tell s "AGE : FILE[$2] match with AGE keygen" && exit
+			[[ $1 == "-"*"f" ]]&&
+			[ -e $AGE_CFG_FILE ] &&
+    		ask i N "You have alredy config file, so You want replace it!!" r  && exit
+		}
+
+		vaildtion(){
+		tell i "AGE: KEYGEN Verfiying..."
+		[ ! -e $2 ]&& tell f "file dosn't exiest"&& exit|| keygen=$2
+		pub=$(grep -oP "public key: \K(.*)" $keygen 2>/dev/null)
+		prv=$(grep -oP "AGE-SECRET-KEY-\K(.*)" $keygen 2>/dev/null)
+		echo $pub
+		echo $prv
+		##here code
+		echo "lol"
+		tell s "AGE : Valid KeyGen " ||
+		tell f "AGE : Invalid  KeyGen"
+		}
+		$@
+	}
+	exmport(){
+		BACKUP=AGE_KEYGEN_FILE.rom
+		ex_dir=$1
+		tell i "AGE : exmportin keygen.."&&
+		[ -z $ex_dir ]&& input d "INTER EXPORT DIR :" ex_dir
+		[[ ! -e $ex_dir ]]&& tell f "$ex_dir dosn't exiest"&& exit
+		tell i "exporting AGE keygen..."&&
+		tell d "DIR : $ex_dir/$BACKUP"&&
+		cp $AGE_CFG_FILE $ex_dir./$BACKUP&&
+		tell s "AGE : keygen exmported"||
+		tell f "AGE : keygen exmportion FAIL"
+	}
+	import() {
+		[ $1 == "-ds" ]&& con="-emf" || con="-em"
+		[[ $1 == "-s" ]] || # that argument('-s : skip') condition skip the verification of input file 
+		verify check $con $2 #||
+		tell i "AGE : importing keygen file..."
+		
+		agekeygen=$2
+		[ -z $agekeygen ]&&
+		input d " inter AGE KEY FILE : " agekeygen &&
+		verify check -em $agekeygen
+		[[ -e $agekeygen && -s $agekeygen ]] &&
+		cp -v "$agekeygen" "$AGE_CFG_FILE" &&
+		tell s "AGE : KEYGEN impoted" ||
+		tell f "AGE : file importion fail"&&
+		exit
+	}
+
+	create() {
+		    [ -e $AGE_CFG_FILE ]&& tell f "DANGER ZONE : You have alredy AGE KEYGEN, that resone we are not generate KEYGEN " && exit
+		    tell i "AGE: KEYGEN creating..." &&
+			age-keygen -o key && mv key "$AGE_CFG_FILE" &&
+			tell i "keygen dirctory : $AGE_CFG_FILE " &&
+			tell s "AGE : KEYGEN genaretion Done..." ||
+			tell f "AGE : KEYGEN CREATION FAIL" &&
+			rm -rf key
+	}
+
+auto(){
+		verify check -emf $1 ||
+		[[ -n $1 ]]&& import -s $1 && exit # ('-s : skip') argument condition skip the verification of input file
+		ask 'w' 'Y' 'you have AGE keygen BACKUP FILE?' &&
+		import --m $1 || create
+
+}
+# argument reciver
+$@
+}
+
+gpg_cfg() {
+		list_key=$(gpg --list-secret-keys --with-colons | grep "^uid" | cut -d: -f10) 2> /dev/null
+		GPG_PROFILE_USR=$(echo "$list_key" | awk '{print $1}') 2> /dev/null
+
+		msg1="user alredy exiest"
+		[ -n $1 ] && usr=$1
+    	[[ -z $usr && -n $GPG_PROFILE_USR ]] &&
+		tell i "We are found user[${red}$GPG_PROFILE_USR${blue}] in your GPG profile" && 
+		ask i Y "You Want to use GPG profile USER NAME" &&
+		usr=$GPG_PROFILE_USR
+
+		[[ -n $GPG_USR && $GPG_USR == $usr ]] && tell i "[$red$usr$blue] $msg1" && return 0 ||
+		[[ -n $GPG_USR ]]&& ask w N "you have alredy user[$GPG_USR], you want to replace with $usr" r && exit ||
+		[ -z $usr ]&&
+		input d  "set GPG user name : " usr &&
+		[[ "$GPG_USR" == "$usr" ]] && tell i "[$usr] $msg1" && exit ||
+		echo "gpg_user: $usr" > $CFG_DIR/.config &&
+    	tell s "add user $usr Done..."
+}
+
+reset_cfg(){
+	mg="you want to reset configer files"
+	age_rm () { 
+		[ ! -e $AGE_CFG_FILE ] && tell i "AGE : config not exiest!" && exit
+ 		ask i N "AGE : $mg" r && exit 
+		ask w N "You have AGE keygen backup?" r && tell i "AGE : First backup your age keygen then, Do this!" && exit
+		rm -vrf  $AGE_CFG_FILE &&
+		tell s "AGE : configer reset, done."
+	}
+
+	gpg_rm () {
+		ask i N "GPG : $mg" r && exit ||
+		rm -vrf  $CFG_DIR/.config &&
+		tell s "GPG : configer reset, done."
+	}
+# argument reciver
+	$@
+}
+# argument reciver
+# $2 $3 $4
