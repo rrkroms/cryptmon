@@ -1,23 +1,82 @@
 #!/bin/bash
-
-source rom_ui
-# [ $1 == '-c'* ]&&
-[ ! -d $CFG_DIR ] &&
-        mkdir $CFG_DIR &&
-        tell i "creating configer dirctory ${CFG_DIR}"
-
-	view_cfg(){
+age_key=$(cat $AGE_CFG_FILE 2>/dev/null)
+sops_key=$(cat $SOPS_CFG_DIR/keys.txt 2>/dev/null)
+view_cfg(){
 		--age(){
 			[ ! -e $AGE_CFG_FILE ] && tell f "AGE : KEYGEN not exiest!" || tell d "AGE : ${yellow}DIR:- ${blue} $AGE_CFG_FILE
 	   ${yellow}KEY:-${red} $AGE_PUB"
 			}
 		--gpg(){
-			[ -z $GPG_USR ] && tell f "GPG : user not exiest!" || tell d "GPG : USER :- $GPG_USR"
+			[ -z "$GPG_USR" ] && tell f "GPG : user not exiest!" || tell d "GPG : USER :- $GPG_USR"
+		}
+		--sops(){
+			[ !-h $SOPS_CFG_DIR/keys.txt ] tell f "SOPS: Age key symbolic file not exiest" ||
+			[]
 		}
 		[ -z $1 ]&& --age 
 		[ -z $1 ]&& --gpg
 		$@
 	}
+
+pkg_cfg(){
+	pkg_status=$(grep -oP 'pkg_status: \K(.*)' $CFG_DIR/.config 2>/dev/null)
+
+	pkg_check(){
+	pkg_msg0="is installed on this system."
+	pkg_msg1="is not installed on this system."
+
+	if command -v gpg &>/dev/null ; then
+	[[ $1 == *'v' ]] && tell s "GPG (GNU Privacy Guard) ${pkg_msg0}"
+	else
+	tell f "GPG (GNU Privacy Guard) ${pkg_msg1}"
+	missing_pkg+="gnupg"
+	fi
+
+	if 
+	command -v age &>/dev/null ; then
+	[[ $1 == *'v' ]] && tell s "AGE ${pkg_msg0}"
+	else
+	tell f "AGE ${pkg_msg0}"
+	missing_pkg+=" age"
+	fi
+	
+	if
+	command -v sops &>/dev/null ; then
+        [[ $1 == *'v' ]] &&  tell s "SOPS ${pkg_msg0}"
+	else
+        tell f "SOPS ${pkg_msg0}"
+	missing_pkg+=" sops"
+	fi
+
+	if
+	command -v openssl &>/dev/null ; then
+        [[ $1 == *'v' ]] && tell s "OPNESSL ${pkg_msg0}"
+	else
+        tell f "OPNESSL ${pkg_msg0}"
+	missing_pkg+=" openssl-tool"
+	fi
+	[[ -z $missing_pkg && -z $pkg_status ]] && echo "pkg_status: clear" >> $CFG_DIR/.config
+	[[ ! -z $missing_pkg ]] && ask i "Y" "Do you want to install $missing_pkg ?" install_pkg &&
+	apt install -y $missing_pkg &&
+	[ -z $pkg_status ] && echo "pkg_status: clear" >> $CFG_DIR/.config
+	
+}
+	pkg_act(){
+       		[[ ! -e $CFG_DIR/.config || $pkg_status != "clear" || $2 == "--force" ]] && pkg_check $1 
+}
+$@
+}
+sops_cfg() {
+	[[ ! -e $SOPS_CFG_DIR ]] && mkdir -p $SOPS_CFG_DIR && tell i "SOPS: CREATing $SOPS_CFG_DIR"
+	[[ -h $SOPS_CFG_DIR/keys.txt && $age_key == $sops_key ]] && tell s "SOPS: Age key symbolic file exiest" && return 0
+
+	[ ! -h $SOPS_CFG_DIR/keys.txt ] && tell i "SOPS: CREATing Age key's symbolic file" &&
+	ln -vs $AGE_CFG_FILE $SOPS_CFG_DIR/keys.txt ||
+	tell f "SOPS:Age key symbolic file CREATion failed!!!"
+	unset $age_key 
+	unset $symbolic_file
+}
+
 age_cfg() {
 
 	verify() {
@@ -44,7 +103,7 @@ age_cfg() {
 		echo $pub
 		echo $prv
 		##here code
-		echo "lol"
+		echo "usr_er"
 		tell s "AGE : Valid KeyGen " ||
 		tell f "AGE : Invalid  KeyGen"
 		}
@@ -87,6 +146,7 @@ age_cfg() {
 			tell s "AGE : KEYGEN genaretion Done..." ||
 			tell f "AGE : KEYGEN CREATION FAIL" &&
 			rm -rf key
+			call_sops_cfg
 	}
 
 auto(){
@@ -95,6 +155,10 @@ auto(){
 		ask 'w' 'Y' 'you have AGE keygen BACKUP FILE?' &&
 		import --m $1 || create
 
+
+}
+call_sops_cfg(){
+	ask i Y "you want link age key with sops?" && sops_cfg
 }
 # argument reciver
 $@
@@ -105,38 +169,57 @@ gpg_cfg() {
 		GPG_PROFILE_USR=$(echo "$list_key" | awk '{print $1}') 2> /dev/null
 
 		msg1="user alredy exiest"
-		[ -n $1 ] && usr=$1
-    	[[ -z $usr && -n $GPG_PROFILE_USR ]] &&
-		tell i "We are found user[${red}$GPG_PROFILE_USR${blue}] in your GPG profile" && 
+		[ -n "$1" ] && usr="$1"
+        	[[ -z $usr && -n $GPG_PROFILE_USR ]] &&
+		tell i "We are found user[${red}$GPG_PROFILE_USR${blue}] in your cryptmon GPG profile" && 
 		ask i Y "You Want to use GPG profile USER NAME" &&
 		usr=$GPG_PROFILE_USR
 
-		[[ -n $GPG_USR && $GPG_USR == $usr ]] && tell i "[$red$usr$blue] $msg1" && return 0 ||
-		[[ -n $GPG_USR ]]&& ask w N "you have alredy user[$GPG_USR], you want to replace with $usr" r && exit ||
-		[ -z $usr ]&&
-		input d  "set GPG user name : " usr &&
-		[[ "$GPG_USR" == "$usr" ]] && tell i "[$usr] $msg1" && exit ||
-		echo "gpg_user: $usr" > $CFG_DIR/.config &&
-    	tell s "add user $usr Done..."
+		[[ -n "$GPG_USR" && "$GPG_USR" == "$usr" ]] && tell i "[$red$usr$blue] $msg1" && return 0 ||
+		[[ -n "$GPG_USR" ]]&& ask w N "you have alredy user[$GPG_USR], you want to replace with $usr" r && exit ||
+		[ -z "$usr" ]&&
+		input d  "set GPG user name : " "usr" &&
+		[[ "$GPG_USR" == "$usr" ]] && tell i "[$red$usr$blue] $msg1" && exit ||
+		[[ ! -z $GPG_USR ]] && sed -i "s/^gpg_user:.*/gpg_user: $usr/" "$CFG_DIR/.config" ||
+		echo "gpg_user: $usr" >> $CFG_DIR/.config &&
+	    	tell s "add user $usr Done..."
 }
 
 reset_cfg(){
-	mg="you want to reset configer files"
-	age_rm () { 
-		[ ! -e $AGE_CFG_FILE ] && tell i "AGE : config not exiest!" && exit
- 		ask i N "AGE : $mg" r && exit 
+	mgs_ex="configuration not exiest!"
+	msg_don="configuration reset, successful."
+	mgs_as="you want to reset configuration?"
+	age_rm () {
+		[[ ! -e $AGE_CFG_FILE ]] && tell f "AGE : $mgs_ex" && return 1
+ 		ask i N "AGE : $mgs_as" r && exit 
 		ask w N "You have AGE keygen backup?" r && tell i "AGE : First backup your age keygen then, Do this!" && exit
 		rm -vrf  $AGE_CFG_FILE &&
-		tell s "AGE : configer reset, done."
+		tell s "AGE : $msg_don"
 	}
 
 	gpg_rm () {
-		ask i N "GPG : $mg" r && exit ||
-		rm -vrf  $CFG_DIR/.config &&
-		tell s "GPG : configer reset, done."
+		[ -z "$GPG_USR" ] && tell f "GPG: $mgs_ex" && return 1
+		ask i N "GPG : $mgs_as" r && exit ||
+		[[ ! -z $GPG_USR ]] && sed -i "/^gpg_user:*/d" "$CFG_DIR/.config" &&
+		# sed -i "s/^gpg_user:.*/gpg_user: /" that code just remove user name ($usr), not complete line(gpg_user: $usr)
+		tell s "GPG : $msg_don"
+	}
+	sops_rm () {
+		[[ "$1" == "--force-remove" ]] && rm -rvf $SOPS_CFG_DIR/keys.txt && tell s "SOPS: $msg_don" && exit
+		[[ -e $SOPS_CFG_DIR/keys.txt && $age_key != $sops_key ]] && tell d "SOPS: key not match with age key. use --foce-remove 
+     [SOPS KEY DIR ${yellow}:$SOPS_CFG_DIR/keys.txt${blue}] "
+		[ ! -h $SOPS_CFG_DIR/keys.txt ] && tell f "SOPS: $mgs_ex" && return 1
+		# ask i N "SOPS: $mgs_as" r && exit
+		rm -rvf $SOPS_CFG_DIR/keys.txt &&
+		tell s "SOPS: $msg_don"
 	}
 # argument reciver
-	$@
+	"$@"
 }
-# argument reciver
-# $2 $3 $4
+
+# [ $1 == '-c'* ]&&
+[ ! -d $CFG_DIR ] &&
+        mkdir $CFG_DIR &&
+        tell i "creating configer dirctory ${CFG_DIR}"
+
+pkg_cfg pkg_act
