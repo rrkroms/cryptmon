@@ -3,10 +3,11 @@ filename=$(basename -- "$2")
 extension="${filename##*.}"
 filename="${filename%.*}"
 CFG_DIR="${HOME}/.rom_crypt"
+SOPS_CFG_DIR="${HOME}/.config/sops/age"
 AGE_CFG_FILE="$CFG_DIR/.age_keygen.rom"
+AGE_PRV=$(grep -F '^AGE-SECRET-KEY-' $AGE_CFG_FILE 2>/dev/null)
 AGE_PUB=$(grep -oP "public key: \K(.*)" $AGE_CFG_FILE 2>/dev/null)
-GPG_USR=$(grep -oP 'gpg_user: \K(.*)' $CFG_DIR/.config 2>/dev/null)
-lol="user not configer, use: --help argument"
+GPG_USR=$(grep -oP '^gpg_user: \K(.*)' $CFG_DIR/.config 2>/dev/null)
 source rom_ui
 source config
 
@@ -24,7 +25,7 @@ enc() {
         openssl enc -aes-256-cbc -in "$filename.$extension" -out "$filename.$extension.enc.openssl" &&
         mv "$filename.$extension.enc.openssl" "$filename.$extension" ||
         rm "$filename.$extension.enc.openssl" &&
-        tell s "OpenSSL ENCRYPTtion Done..." ||
+        tell s "OpenSSL ENCRYPTion Done..." ||
         tell f "openssl failed, encrypt to file"
     }
 
@@ -32,7 +33,7 @@ enc() {
         tell i "GPG ENCRYPTing..."
         gpg -e -u ${GPG_USR:?gpg: sender not set} -r ${GPG_USR:?gpg: reciver not set} "$filename.$extension" &&
         mv "$filename.$extension.gpg" "$filename.$extension" &&
-        tell s "GPG ENCRYPTtion Done..." ||
+        tell s "GPG ENCRYPTion Done..." ||
         tell f "GPG failed encrypt to file"
     }
     sopsE && opensslE && gpgE
@@ -65,28 +66,55 @@ dec() {
     }
     gpgD && opensslD && sopsD
 }
+verify(){
+    local status
+    age_key(){
+        [ -z ${AGE_PUB} ] && tell f "AGE: public key not found" && status+="1"
+    }
+    sops_key_verify(){
+        if [ ! -h $SOPS_CFG_DIR/keys.txt ] ; then
+            tell f "SOPS: symbolic file not exiest!"
+            status+="1"
+        elif  [[ $age_key != $sops_key ]] ; then
+             tell f "SOPS: key not match with AGE key"
+             status+="1"
+        fi
+    }
 
+    gpg_usr(){
+        [ -z ${GPG_USR} ] && tell f " GPG: user not configer " && status+="1"
+    }
+
+    age_key
+    sops_key_verify
+    gpg_usr
+    if echo "$status" | grep -q "1"; then
+        tell d "use: $0 -c for configuration or use --help" && return 1
+    fi
+    
+}
+test(){
+    cat test.obj
+}
 case $1 in
 
--e | --encrypt) [ -e $2 ] && [ -n ${GPG_USR:?$gpg user not set} ] && enc || tell f "[$2] file dosn't exiest!";;
--d | --decrypt) [ -e $2 ] && [ -n ${GPG_USR:?$lol} ] && dec || tell f "[$2] file dosn't exiest!" ;;
--c   | --cfg ) gpg_cfg $3 && age_cfg auto $2  ;;
--ca  | --cfg-age ) age_cfg auto $2;;
--cg  | --cfg-gpg ) gpg_cfg $2 $3 ;;
+-e | --encrypt) [[ -z $2 && ! -e $2 ]] && tell f "[$2] file dosn't exiest!" && exit || verify && enc ;;
+-d | --decrypt) [[ -z $2 && ! -e $2 ]] && tell f "[$2] file dosn't exiest!" && exit || verify && dec ;;
+-c   | --cfg ) gpg_cfg $3 && age_cfg auto $2 && sops_cfg ;;
+-ca  | --cfg-age ) age_cfg auto $2 ;;
+-cg  | --cfg-gpg ) gpg_cfg "$2" "$3" ;;
+-cs  | --cfg-sops) sops_cfg $1;;
 -cf  | --verify) age_cfg verify ;;
 -cae | -cea | --export-age) age_cfg exmport $2 ;;
 -cai | -cia | --import-age) age_cfg import -ds $2 ;; #('-ds : don't skip)
--cr  | --rm-all ) reset_cfg gpg_rm ; age_rm ;;
+-cr  | --rm-all ) reset_cfg gpg_rm ; age_rm ; sops_rm ;;
 -car | -cra | --rm-age ) reset_cfg age_rm ;;
 -cgr | -crg | --rm-gpg ) reset_cfg gpg_rm ;;
+-csr | -crs | --rm-sops ) reset_cfg sops_rm "$2" ;;
 -cv  | --cfg-view) view_cfg $2 ;;
 -cgv | -cvg | --view-gpg) view_cfg --gpg ;;
 -cav | -cva| --view-age) view_cfg --age ;;
--t) gpg_cfg detector;;
-
-
-
-
+-u*   | --pkg-check*) pkg_cfg pkg_act $1 $2  ;;
 --help)
     echo "
     Syntax: $0 [options] [files]
