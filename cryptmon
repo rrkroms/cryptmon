@@ -67,6 +67,7 @@ dec() {
     gpgD && opensslD && sopsD
 }
 verify(){
+# that function verify & match keys & gpg user
     local status
     age_key(){
         [ -z ${AGE_PUB} ] && tell f "AGE: public key not found" && status+="1"
@@ -117,7 +118,7 @@ case $1 in
 -u*   | --pkg-check*) pkg_cfg pkg_act $1 $2  ;;
 --help)
     echo "
-    Syntax: $0 [options] [files]
+    Syntax: $0 [OPTION] [FILE]
     ${0%.*} is 3 Layer encrytion script that base on GPG SOPS AGE openssl.
     encrypt/decrypt your secrect by easy command line 
     OPTIONS:
@@ -125,18 +126,24 @@ case $1 in
 	    -d,  --decrypt     decrypt file.
             -c,  --cfg         configer
 
-    [ -C ] SUB-OPTIONS:
-      USAGE : $0 [-ca] [FILE] [-y]
+    [-c] SUB-OPTIONS:
+      USAGE : $0 [-ca] [KEY FILE] [-y]
               $0 [-cg] [USER NAME]
-              $0 [-c] [FILE] [USER NAME]
+              $0 [-c] [KEY FILE] [USER NAME]
               $0 [-cae]or[-cea] [DIR]
-              $0 [-cai]or[-cia] [FILE]
+              $0 [-cai]or[-cia] [KEY FILE]
               $0 [-cae]or[-cea] [DIR]
+
+    CONFIGER OPERATOR/PROGRAM:
          a,  --cfg-age            AGE configer
          g,  --cfg-gpg            GPG configer
+	 s,  --cfg-sops		  SOPS configer
+
+    IMPORT/EXPORT KEYS:
          e,  --export-[CODE]     export config
          i,  --import-[CODE]     import config 
-         v,  --cfg-vieW          show config
+	
+         v,  --cfg-view          show config
          f,  --verify            verfiy keygen that, vaild or invaild
          r,  --reset             reset configer
       HINTs : 
