@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 filename=$(basename -- "$2")
 extension="${filename##*.}"
 filename="${filename%.*}"
@@ -83,7 +83,7 @@ verify(){
     }
 
     gpg_usr(){
-        [ -z ${GPG_USR} ] && tell f " GPG: user not configer " && status+="1"
+        [ -z ${GPG_USR} ] && tell f " GPG: user not configure " && status+="1"
     }
 
     age_key
@@ -124,7 +124,7 @@ case $1 in
     OPTIONS:
 	    -e,  --encrypt     encrypt file.
 	    -d,  --decrypt     decrypt file.
-            -c,  --cfg         configer
+            -c,  --cfg         configure
 
     [-c] SUB-OPTIONS:
       USAGE : $0 [-ca] [KEY FILE] [-y]
@@ -134,10 +134,10 @@ case $1 in
               $0 [-cai]or[-cia] [KEY FILE]
               $0 [-cae]or[-cea] [DIR]
 
-    CONFIGER OPERATOR/PROGRAM:
-         a,  --cfg-age            AGE configer
-         g,  --cfg-gpg            GPG configer
-	 s,  --cfg-sops		  SOPS configer
+    CONFIGURE OPERATOR/PROGRAM:
+         a,  --cfg-age            AGE configure
+         g,  --cfg-gpg            GPG configure
+	 s,  --cfg-sops		  SOPS configure
 
     IMPORT/EXPORT KEYS:
          e,  --export-[CODE]     export config
@@ -145,7 +145,7 @@ case $1 in
 	
          v,  --cfg-view          show config
          f,  --verify            verfiy keygen that, vaild or invaild
-         r,  --reset             reset configer
+         r,  --reset             reset configure
       HINTs : 
       [CODE] : usage package code , in that place
                 EXAMPLE: $0 --import-age (import AGE config) 

@@ -155,7 +155,7 @@ age_cfg() {
 	}
 
 auto(){
-#this function React as Situation,that mean check age key's Existence in 'configer directory' & user input($0 -cai key.txt) then run  run correct function According the Situation
+#this function React as Situation,that mean check age key's Existence in 'configure directory' & user input($0 -cai key.txt) then run  run correct function According the Situation
 		verify check -emf $1 ||
 		[[ -n $1 ]]&& import -s $1 && exit # ('-s : skip') argument condition skip the verification of input file
 		ask 'w' 'Y' 'you have AGE keygen BACKUP FILE?' &&
@@ -228,6 +228,6 @@ reset_cfg(){
 # [ $1 == '-c'* ]&&
 [ ! -d $CFG_DIR ] &&
         mkdir $CFG_DIR &&
-        tell i "creating configer dirctory ${CFG_DIR}"
+        tell i "creating configure dirctory ${CFG_DIR}"
 
 pkg_cfg pkg_act
