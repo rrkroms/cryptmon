@@ -1,4 +1,10 @@
+<div align="center" >
+    <h1>CryptMon - multi-layer Encryption programme</h1>
+    <br>
+</div>
+
 # 1. introduction
+
 CryptMon is a powerful 3-layer encryption tool that combines the functionalities of GPG, SOPS, and OpenSSL to provide a user-friendly command-line interface for encrypting and decrypting your secrets. It offers an easy-to-use set of options for securing your sensitive data efficiently.
 
 >**DISCLAIMER:** THIS IS AN ALPHA/EXPERIMENTAL VERSION OF THE CRYPTMON ENCRYPTION PROGRAM. USE IT AT YOUR OWN RISK, AS THERE MAY BE BUGS THAT CAN POTENTIALLY CAUSE DATA LOSS OR DAMAGE TO YOUR FILES. BEFORE PERFORMING ANY ENCRYPTION USING CRYPTMON, IT IS STRONGLY RECOMMENDED TO _BACK UP YOUR FILES/DATA AND `AGE`, `GPG`, AND `OPENSSH` KEYS._
@@ -10,7 +16,7 @@ CryptMon is a powerful 3-layer encryption tool that combines the functionalities
       - [Layer 1: SOPS Encryption with AGE Key](#layer-1-sops-encryption-with-age-key) 
       - [Layer 2: OpenSSH Encryption with AES-256-CBC Method](#layer-2-openssh-encryption-with-aes-256-cbc-method) 
       - [Layer 3: GPG Encryption with User-Defined Configuration](#layer-3-gpg-encryption-with-user-defined-configuration) \
-   1.2 [Quick Usage](#12-quick-usage) \
+   1.2 [Quick start](#12-quick-start) \
    1.3 [Commands Usage](#13-commands-usage) \
       1.3.1 [Configure Command (-c) Sub-Option](#131-configure-command--c-sub-option) \
       1.3.2 [Definition of Operator](#132-definition-of-operator) \
@@ -21,8 +27,8 @@ CryptMon is a powerful 3-layer encryption tool that combines the functionalities
 
 2. [Setup CryptMon](#2-setup-cryptmon) \
    2.1 [Requirements](#21-requirements) \
-   2.2 [clone/install](#22-clone)
-   
+   2.2 [clone/install](#22-clone) \
+   2.3 [Make excutable](#23-make-sctipt-excutable)
 3. [Configuration](#3-configuration) \
    3.1 [Manage Configuration](#31-manage-configuration) \
       3.1.1 [Command Chart](#311-command-chart) \
@@ -45,7 +51,7 @@ CryptMon is a powerful 3-layer encryption tool that combines the functionalities
    5.2 [Own/Official](#52-ownofficial) 
 
 
-## 1.1 CryptMon - Three-Layer Encryption
+## 1.1 CryptMon - multi-Layer Encryption
 
 CryptMon is a powerful encryption tool that provides three layers of security to safeguard your sensitive data. Each layer adds an additional level of protection to ensure the utmost confidentiality. Below is an overview of how CryptMon's three-layer encryption works:
 
@@ -63,7 +69,12 @@ The second layer of encryption involves using OpenSSH encryption with the AES-25
 
 The third and final layer of CryptMon's encryption process utilizes the GNU Privacy Guard (GPG) encryption method. GPG allows users to configure their encryption settings based on their preferences. By providing a user-defined GPG configuration, CryptMon enhances security according to individual needs and requirements.
 
-## 1.2 quick usage
+## 1.2 quick start
+
+*make excutable*
+```
+chmod +x cryptmon
+```
 *configure cryptmon*
 - step 1. [configure gpg manually ](https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key)
 - step 2. configure cryptmon
@@ -72,11 +83,11 @@ The third and final layer of CryptMon's encryption process utilizes the GNU Priv
 ```
 >if you have an age key then replace with [KEY FILE] option and add gpg user name that match with gpg configuration 
 
-**encrypt an file**
+*encrypt an file*
 ```
 ./cryptmon -e [FILE]
 ```
-**decrypt an file**
+*decrypt an file*
 ```
 ./cryptmon -d [ENCRYPTED FILE]
 ```
@@ -181,7 +192,7 @@ use sub-options with -c option without any space in between.
 
 Before using CryptMon, ensure that you have the following prerequisites:
 
-- Linux operating system or distribution.
+- Linux operating system.
 - Required packages: `age`, `sops`, `gpg`, `openssh`.
 
 > CryptMon will automatically fulfill the required packages when you run it.
@@ -194,6 +205,18 @@ To clone the CryptMon repository, execute the following command:
 git clone https://github.com/rrkroms/cryptmon.git
 ```
 
+### 2.3 make script excutable
+To make CryptMon executable, execute the following command:
+
+```bash
+chmod +x cryptmon
+```
+
+Alternatively, you can use CryptMon without making it executable by adding `bash` before `./cryptmon` every time you use it:
+
+```bash
+bash ./cryptmon
+```
 ## 3. Configuration
 
 Before performing any encryption, it's essential to configure CryptMon based on the configurations of `gpg`, `age`, and `sops`.
