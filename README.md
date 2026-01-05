@@ -1,5 +1,5 @@
 <div align="center" >
-    <h1>CryptMon - multi-layer Encryption programme</h1>
+    <h1>CryptMon - multi-layer Encryption programme(prototype)</h1>
     <br>
 </div>
 
@@ -7,7 +7,7 @@
 
 CryptMon is a powerful 3-layer encryption tool that combines the functionalities of GPG, SOPS, and OpenSSL to provide a user-friendly command-line interface for encrypting and decrypting your secrets. It offers an easy-to-use set of options for securing your sensitive data efficiently.
 
->**DISCLAIMER:** THIS IS AN ALPHA/EXPERIMENTAL VERSION OF THE CRYPTMON ENCRYPTION PROGRAM. USE IT AT YOUR OWN RISK, AS THERE MAY BE BUGS THAT CAN POTENTIALLY CAUSE DATA LOSS OR DAMAGE TO YOUR FILES. BEFORE PERFORMING ANY ENCRYPTION USING CRYPTMON, IT IS STRONGLY RECOMMENDED TO _BACK UP YOUR FILES/DATA AND `AGE`, `GPG`, AND `OPENSSH` KEYS._
+>**🔴DISCLAIMER:** THIS IS AN ALPHA/EXPERIMENTAL VERSION OF THE CRYPTMON ENCRYPTION PROGRAM. USE IT AT YOUR OWN RISK, AS THERE MAY BE BUGS THAT CAN POTENTIALLY CAUSE DATA LOSS OR DAMAGE TO YOUR FILES. BEFORE PERFORMING ANY ENCRYPTION USING CRYPTMON, IT IS STRONGLY RECOMMENDED TO _BACK UP YOUR FILES/DATA AND `AGE`, `GPG`, AND `OPENSSH` KEYS._
 
 # Table of Contents
 
